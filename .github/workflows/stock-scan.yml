@@ -1,0 +1,78 @@
+name: Stock Scan
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+  schedule:
+    - cron: '0 * * * *' # Every hour, on the hour UTC
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: |
+          npm ci || npm install
+          npx playwright install --with-deps
+
+      - name: Run stock scan test (capture output regardless of result)
+        id: run_test
+        run: |
+          set +e
+          npx playwright test tests/scan-stock.spec.js --reporter=line | tee scan-output.txt
+          EXIT_CODE=$?
+          echo "EXIT_CODE=$EXIT_CODE" >> $GITHUB_ENV
+          if [ $EXIT_CODE -eq 0 ]; then echo "STATUS=SUCCESS" >> $GITHUB_ENV; else echo "STATUS=FAILURE" >> $GITHUB_ENV; fi
+          # Create a concise summary file
+          echo "Stock scan completed with status: $STATUS" > summary.txt
+          echo "Total cards and clickable cards are in scan-results.txt" >> summary.txt
+          # Append scan-results.txt to scan-output.txt for email body
+          if [ -f scan-results.txt ]; then cat scan-results.txt >> scan-output.txt; fi
+
+      - name: Prepare email subject
+        run: |
+          if [ "$STATUS" = "SUCCESS" ]; then
+            echo "MAIL_SUBJECT=Stock Scan Results: SUCCESS" >> $GITHUB_ENV
+          else
+            echo "MAIL_SUBJECT=Stock Scan Results: FAILURE" >> $GITHUB_ENV
+          fi
+
+      - name: Send email with results
+        uses: dawidd6/action-send-mail@v3
+        if: always() # ensure email sent even if previous step failed
+        with:
+          server_address: ${{ secrets.SMTP_SERVER }}
+          server_port: ${{ secrets.SMTP_PORT }}
+          username: ${{ secrets.SMTP_USERNAME }}
+          password: ${{ secrets.SMTP_PASSWORD }}
+          subject: ${{ env.MAIL_SUBJECT }}
+          from: Stock Scanner <${{ secrets.SMTP_USERNAME }}>
+          to: tautvydas.ankenas@gmail.com
+          # Body from file containing full output
+          body: file://scan-results.txt
+          # Attach both summary and raw output
+          attachments: summary.txt, scan-output.txt, scan-results.txt
+
+      - name: Upload artifacts (optional)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stock-scan-results
+          path: |
+            scan-output.txt
+            summary.txt
+            playwright-report
+
+    # Mark job result based on captured exit code (optional)
+    outputs:
+      status: ${{ env.STATUS }}

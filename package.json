@@ -1,0 +1,27 @@
+{
+  "name": "stock-scanner",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "playwright test",
+    "lint": "eslint ."
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TautvydasAnk/stock-scanner.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/TautvydasAnk/stock-scanner/issues"
+  },
+  "homepage": "https://github.com/TautvydasAnk/stock-scanner#readme",
+  "description": "",
+  "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "@playwright/test": "^1.56.1",
+    "eslint": "^9.39.1",
+    "globals": "^16.5.0"
+  }
+}
