@@ -5,11 +5,11 @@ const path = require('path');
 
 test('scan stock of store', async ({ page }) => {
   await page.goto('https://www.xszaislai.lt/search/pokemon%20asmodee');
-  await page.locator('li.ProductCard').first().waitFor({ state: 'visible', timeout: 10000 });
+  await page.locator('//li[contains(@class,"ProductCard")]').first().waitFor({ state: 'visible', timeout: 10000 });
 
   const cards = page
-    .locator('li.ProductCard')
-    .filter({ has: page.locator('button.ProductCard-ProductAddToCartButton') });
+    .locator('//li[contains(@class,"ProductCard")]')
+    .filter({ has: page.locator('//button[contains(@class,"ProductCard-ProductAddToCartButton")]') });
 
   const total = await cards.count();
   let usable = 0;
@@ -17,19 +17,17 @@ test('scan stock of store', async ({ page }) => {
 
   for (let i = 0; i < total; i++) {
     const card = cards.nth(i);
-    const button = card.locator('button.ProductCard-ProductAddToCartButton');
+    const button = card.locator('//button[contains(@class,"ProductCard-ProductAddToCartButton")]');
     if (!(await button.isVisible()) || !(await button.isEnabled())) continue;
     usable++;
     const name = await card
-      .locator('.ProductCard-Name.ProductCard-Name_isLoaded')
+      .locator('//p[contains(@class,"ProductCard-Name ProductCard-Name_isLoaded")]')
       .textContent({ timeout: 2000 })
       .catch(() => null);
     output += `${usable}. ${(name || '[name missing]').trim()}\n`;
   }
 
   output += `Clickable (visible & enabled) cards: ${usable}\n`;
-  // Always write to the workspace root, create directory if needed
   const outPath = path.resolve(process.cwd(), 'scan-results.txt');
   fs.writeFileSync(outPath, output);
-  console.log(output);
 });
