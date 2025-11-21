@@ -5,7 +5,7 @@ on:
     branches: [ main ]
   workflow_dispatch:
   schedule:
-    - cron: '0 * * * *' # Every hour, on the hour UTC
+    - cron: '*/5 * * * *' # Every 5 minutes
 
 jobs:
   scan:
