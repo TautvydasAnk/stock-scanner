@@ -1,6 +1,7 @@
 const { test, expect } = require('@playwright/test');
 
 const fs = require('fs');
+const path = require('path');
 
 test('scan stock of store', async ({ page }) => {
   await page.goto('https://www.xszaislai.lt/search/pokemon%20asmodee');
@@ -27,6 +28,8 @@ test('scan stock of store', async ({ page }) => {
   }
 
   output += `Clickable (visible & enabled) cards: ${usable}\n`;
-  fs.writeFileSync('scan-results.txt', output);
+  // Always write to the workspace root, create directory if needed
+  const outPath = path.resolve(process.cwd(), 'scan-results.txt');
+  fs.writeFileSync(outPath, output);
   console.log(output);
 });
