@@ -48,18 +48,53 @@ jobs:
             echo "MAIL_SUBJECT=Stock Scan Results: FAILURE" >> $GITHUB_ENV
           fi
 
-      - name: Download previous scan-items.json
-        uses: actions/download-artifact@v4
-        with:
-          name: last-scan-items
-          path: ./
-        continue-on-error: true
+      - name: Install jq (for JSON parsing)
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y jq
+
+      - name: Fetch previous scan-items artifact (cross-run)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "Listing artifacts to find previous last-scan-items..."
+          curl -s -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/actions/artifacts" > artifacts.json
+          ARTIFACT_ID=$(jq -r '.artifacts | map(select(.name=="last-scan-items")) | sort_by(.created_at) | reverse | .[0].id // empty' artifacts.json)
+          if [ -n "$ARTIFACT_ID" ]; then
+            echo "Found artifact id: $ARTIFACT_ID"
+            curl -L -H "Authorization: Bearer $GH_TOKEN" -o last-scan-items.zip \
+              "https://api.github.com/repos/${{ github.repository }}/actions/artifacts/$ARTIFACT_ID/zip"
+            mkdir -p last-scan-items
+            unzip -q last-scan-items.zip -d last-scan-items
+            ls -R last-scan-items || true
+          else
+            echo "No previous artifact found; treating as first run."
+          fi
+
+      - name: Generate diff (scan-diff.txt)
+        run: |
+          node - <<'EOF'
+          const fs = require('fs');
+          const prevPath = 'last-scan-items/scan-items.json';
+          const currPath = 'scan-items.json';
+          const load = p => fs.existsSync(p) ? JSON.parse(fs.readFileSync(p,'utf8')) : [];
+          const prev = load(prevPath); const curr = load(currPath);
+          const pSet = new Set(prev.map(i=>i.name)); const cSet = new Set(curr.map(i=>i.name));
+          const added = [...cSet].filter(n=>!pSet.has(n));
+          const removed = [...pSet].filter(n=>!cSet.has(n));
+          let summary='';
+          if (added.length) summary += `Added items (${added.length}):\n` + added.map(n=>`+ ${n}`).join('\n') + '\n';
+          if (removed.length) summary += `Removed items (${removed.length}):\n` + removed.map(n=>`- ${n}`).join('\n') + '\n';
+          if (!summary) summary = 'No changes in items.';
+          fs.writeFileSync('scan-diff.txt', summary);
+          EOF
 
       - name: Compare scan-items.json to previous
         id: compare_items
         run: |
-          if [ -f scan-items.json ] && [ -f last-scan-items/scan-items.json ]; then
-            if cmp -s scan-items.json last-scan-items/scan-items.json; then
+          if [ -f scan-diff.txt ]; then
+            if grep -q "No changes in items." scan-diff.txt; then
               echo "NO_CHANGES=true" >> $GITHUB_ENV
             else
               echo "NO_CHANGES=false" >> $GITHUB_ENV

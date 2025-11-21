@@ -34,10 +34,5 @@ test('scan stock of store', async ({ page }) => {
   const outPath = path.resolve(process.cwd(), 'scan-results.txt');
   fs.writeFileSync(outPath, output);
   const currPath = path.resolve(process.cwd(), 'scan-items.json');
-  const prevPath = path.resolve(process.cwd(), 'previous-scan-items.json');
-  // Move previous scan-items.json to previous-scan-items.json if exists
-  if (fs.existsSync(currPath)) {
-    fs.copyFileSync(currPath, prevPath);
-  }
   fs.writeFileSync(currPath, JSON.stringify(items, null, 2));
 });
