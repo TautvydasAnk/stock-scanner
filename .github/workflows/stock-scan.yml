@@ -29,15 +29,15 @@ jobs:
         id: run_test
         run: |
           set +e
-          npx playwright test tests/scan-stock.spec.js --reporter=line | tee scan-output.txt
+          npx playwright test tests/scan-stock.spec.js --reporter=line
           EXIT_CODE=$?
           echo "EXIT_CODE=$EXIT_CODE" >> $GITHUB_ENV
           if [ $EXIT_CODE -eq 0 ]; then echo "STATUS=SUCCESS" >> $GITHUB_ENV; else echo "STATUS=FAILURE" >> $GITHUB_ENV; fi
           # Create a concise summary file
           echo "Stock scan completed with status: $STATUS" > summary.txt
           echo "Total cards and clickable cards are in scan-results.txt" >> summary.txt
-          # Append scan-results.txt and scan-diff.txt to scan-output.txt for email body
-          if [ -f scan-results.txt ]; then cat scan-results.txt >> scan-output.txt; fi
+          # Only include scan-results.txt and scan-diff.txt in scan-output.txt for email body
+          cp scan-results.txt scan-output.txt
           if [ -f scan-diff.txt ]; then echo "\nItem changes:" >> scan-output.txt; cat scan-diff.txt >> scan-output.txt; fi
 
       - name: Prepare email subject
