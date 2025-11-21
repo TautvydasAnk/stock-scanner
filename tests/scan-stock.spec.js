@@ -22,7 +22,7 @@ test('scan stock of store', async ({ page }) => {
     if (!(await button.isVisible()) || !(await button.isEnabled())) continue;
     usable++;
     const name = await card
-      .locator('//p[contains(@class,"ProductCard-Name")]')
+      .locator('//p[contains(@class,"ProductCard-Name ProductCard-Name_isLoaded")]')
       .textContent({ timeout: 2000 })
       .catch(() => null);
     const item = { name: (name || '[name missing]').trim() };
