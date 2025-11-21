@@ -14,6 +14,7 @@ test('scan stock of store', async ({ page }) => {
   const total = await cards.count();
   let usable = 0;
   let output = `Potential cards (with button element present): ${total}\n`;
+  let items = [];
 
   for (let i = 0; i < total; i++) {
     const card = cards.nth(i);
@@ -21,13 +22,22 @@ test('scan stock of store', async ({ page }) => {
     if (!(await button.isVisible()) || !(await button.isEnabled())) continue;
     usable++;
     const name = await card
-      .locator('//p[contains(@class,"ProductCard-Name ProductCard-Name_isLoaded")]')
+      .locator('//p[contains(@class,"ProductCard-Name")]')
       .textContent({ timeout: 2000 })
       .catch(() => null);
-    output += `${usable}. ${(name || '[name missing]').trim()}\n`;
+    const item = { name: (name || '[name missing]').trim() };
+    items.push(item);
+    output += `${usable}. ${item.name}\n`;
   }
 
   output += `Clickable (visible & enabled) cards: ${usable}\n`;
   const outPath = path.resolve(process.cwd(), 'scan-results.txt');
   fs.writeFileSync(outPath, output);
+  const currPath = path.resolve(process.cwd(), 'scan-items.json');
+  const prevPath = path.resolve(process.cwd(), 'previous-scan-items.json');
+  // Move previous scan-items.json to previous-scan-items.json if exists
+  if (fs.existsSync(currPath)) {
+    fs.copyFileSync(currPath, prevPath);
+  }
+  fs.writeFileSync(currPath, JSON.stringify(items, null, 2));
 });

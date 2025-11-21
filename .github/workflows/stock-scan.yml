@@ -5,7 +5,7 @@ on:
     branches: [ main ]
   workflow_dispatch:
   schedule:
-    - cron: '*/2 * * * *' # Every 2 minutes
+    - cron: '0 5-22 * * 1-5' # Every hour from 07:00 to 23:00 Vilnius time, Monday to Friday
 
 jobs:
   scan:
@@ -36,8 +36,9 @@ jobs:
           # Create a concise summary file
           echo "Stock scan completed with status: $STATUS" > summary.txt
           echo "Total cards and clickable cards are in scan-results.txt" >> summary.txt
-          # Append scan-results.txt to scan-output.txt for email body
+          # Append scan-results.txt and scan-diff.txt to scan-output.txt for email body
           if [ -f scan-results.txt ]; then cat scan-results.txt >> scan-output.txt; fi
+          if [ -f scan-diff.txt ]; then echo "\nItem changes:" >> scan-output.txt; cat scan-diff.txt >> scan-output.txt; fi
 
       - name: Prepare email subject
         run: |
@@ -47,9 +48,29 @@ jobs:
             echo "MAIL_SUBJECT=Stock Scan Results: FAILURE" >> $GITHUB_ENV
           fi
 
+      - name: Download previous scan-items.json
+        uses: actions/download-artifact@v4
+        with:
+          name: last-scan-items
+          path: ./
+        continue-on-error: true
+
+      - name: Compare scan-items.json to previous
+        id: compare_items
+        run: |
+          if [ -f scan-items.json ] && [ -f last-scan-items/scan-items.json ]; then
+            if cmp -s scan-items.json last-scan-items/scan-items.json; then
+              echo "NO_CHANGES=true" >> $GITHUB_ENV
+            else
+              echo "NO_CHANGES=false" >> $GITHUB_ENV
+            fi
+          else
+            echo "NO_CHANGES=false" >> $GITHUB_ENV
+          fi
+
       - name: Send email with results
+        if: env.NO_CHANGES == 'false'
         uses: dawidd6/action-send-mail@v3
-        if: always()
         with:
           server_address: ${{ secrets.SMTP_SERVER }}
           server_port: ${{ secrets.SMTP_PORT }}
@@ -58,8 +79,14 @@ jobs:
           subject: ${{ env.MAIL_SUBJECT }}
           from: Stock Scanner <${{ secrets.SMTP_USERNAME }}>
           to: tautvydas.ankenas@gmail.com
-          body: file://scan-results.txt
+          body: file://scan-output.txt
           attachments: summary.txt, scan-output.txt, scan-results.txt
+
+      - name: Upload new scan-items.json for next run
+        uses: actions/upload-artifact@v4
+        with:
+          name: last-scan-items
+          path: scan-items.json
 
       - name: Upload artifacts (optional)
         if: always()
