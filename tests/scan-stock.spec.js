@@ -5,7 +5,7 @@ const path = require('path');
 
 test('scan stock of store', async ({ page }) => {
   await page.goto('https://www.xszaislai.lt/search/pokemon%20asmodee');
-  await page.waitForLoadState('networkidle');
+  await page.locator('li.ProductCard').first().waitFor({ state: 'visible', timeout: 10000 });
 
   const cards = page
     .locator('li.ProductCard')
