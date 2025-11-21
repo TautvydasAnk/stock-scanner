@@ -5,7 +5,7 @@ on:
     branches: [ main ]
   workflow_dispatch:
   schedule:
-    - cron: '*/5 * * * *' # Every 5 minutes
+    - cron: '*/2 * * * *' # Every 2 minutes
 
 jobs:
   scan:
@@ -49,7 +49,7 @@ jobs:
 
       - name: Send email with results
         uses: dawidd6/action-send-mail@v3
-        if: always() # ensure email sent even if previous step failed
+        if: always()
         with:
           server_address: ${{ secrets.SMTP_SERVER }}
           server_port: ${{ secrets.SMTP_PORT }}
@@ -58,9 +58,7 @@ jobs:
           subject: ${{ env.MAIL_SUBJECT }}
           from: Stock Scanner <${{ secrets.SMTP_USERNAME }}>
           to: tautvydas.ankenas@gmail.com
-          # Body from file containing full output
           body: file://scan-results.txt
-          # Attach both summary and raw output
           attachments: summary.txt, scan-output.txt, scan-results.txt
 
       - name: Upload artifacts (optional)
@@ -73,6 +71,5 @@ jobs:
             summary.txt
             playwright-report
 
-    # Mark job result based on captured exit code (optional)
     outputs:
       status: ${{ env.STATUS }}
