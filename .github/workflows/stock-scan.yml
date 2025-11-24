@@ -38,7 +38,7 @@ jobs:
           echo "Total cards and clickable cards are in scan-results.txt" >> summary.txt
           # Only include scan-results.txt and scan-diff.txt in scan-output.txt for email body
           cp scan-results.txt scan-output.txt
-          echo "\nItem changes:" >> scan-output.txt
+          printf "\nItem changes:\n" >> scan-output.txt
           cat scan-diff.txt >> scan-output.txt || true
 
       - name: Prepare email subject
