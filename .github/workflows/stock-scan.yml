@@ -39,7 +39,7 @@ jobs:
           # Only include scan-results.txt and scan-diff.txt in scan-output.txt for email body
           cp scan-results.txt scan-output.txt
           echo "\nItem changes:" >> scan-output.txt
-          cat scan-diff.txt >> scan-output.txt
+          cat scan-diff.txt >> scan-output.txt || true
 
       - name: Prepare email subject
         run: |
