@@ -28,5 +28,3 @@ npm run lint
 - Add application source files (e.g. `src/` directory)
 - Configure Playwright to point at local dev server if needed
 - Extend ESLint config with additional plugins or rules (e.g. security, style)
-
-- Ping
